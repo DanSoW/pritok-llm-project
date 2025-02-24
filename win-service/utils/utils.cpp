@@ -20,6 +20,37 @@ std::vector<std::string> split(const std::string& str, const std::string& delimi
 	return tokens;
 }
 
+std::vector<std::wstring> splitW(const std::wstring& str, const std::wstring& delimiters) {
+	if (str.size() == 0) {
+		return std::vector<std::wstring>();
+	}
+
+	std::vector<std::wstring> tokens;
+	std::wstring::size_type lastPos = str.find_first_not_of(delimiters, 0);
+	std::wstring::size_type pos = str.find_first_of(delimiters, lastPos);
+
+	while (std::wstring::npos != pos || std::wstring::npos != lastPos) {
+		tokens.push_back(str.substr(lastPos, pos - lastPos));
+
+		lastPos = str.find_first_not_of(delimiters, pos);
+		pos = str.find_first_of(delimiters, lastPos);
+	}
+
+	return tokens;
+}
+
+std::string replaceAll(const std::string& str, const std::string& oldStr, const std::string& newStr) {
+	std::string copy{ str };
+	size_t pos = 0;
+
+	while ((pos = copy.find(oldStr, pos)) != std::string::npos) {
+		copy.replace(pos, oldStr.size(), newStr);
+		pos += newStr.size();
+	}
+
+	return copy;
+}
+
 /* Function for comparing two dates */
 bool dateEqual(struct tm date1, struct tm date2) {
 	bool year = date1.tm_year == date2.tm_year;

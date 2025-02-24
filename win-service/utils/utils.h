@@ -14,6 +14,10 @@
 // #include <zlib.h>
 
 std::vector<std::string> split(const std::string& str, const std::string& delimiters);
+std::vector<std::wstring> splitW(const std::wstring& str, const std::wstring& delimiters);
+
+std::string replaceAll(const std::string& str, const std::string& oldStr, const std::string& newStr);
+
 bool dateEqual(struct tm date1, struct tm date2);
 std::string dateToString(struct tm date, std::string sep = "");
 std::string currentDateTime();

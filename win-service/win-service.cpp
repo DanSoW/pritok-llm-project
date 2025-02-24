@@ -23,28 +23,28 @@ using namespace std;
 VOID SvcInit(DWORD, LPWSTR*);
 VOID WINAPI SvcMain(DWORD, LPWSTR*);
 
-void mainFunc(int argc, TCHAR* argv[]) {
-    if (lstrcmpi(argv[1], TEXT("/install")) == 0) {
-        SvcInstall();
+void mainFunc(int argc, WCHAR* argv[]) {
+    if (lstrcmpiW(argv[1], L"/install") == 0) {
+        SvcInstall(argc, argv);
 
         std::cout << "Служба установлена" << std::endl;
     }
-    else if (lstrcmpi(argv[1], TEXT("/start")) == 0) {
+    else if (lstrcmpiW(argv[1], L"/start") == 0) {
         DoStartSvc();
 
         std::cout << "Служба запущена" << std::endl;
     }
-    else if (lstrcmpi(argv[1], TEXT("/stop")) == 0) {
+    else if (lstrcmpiW(argv[1], L"/stop") == 0) {
         DoStopSvc();
 
         std::cout << "Служба остановлена" << std::endl;
     }
-    else if (lstrcmpi(argv[1], TEXT("/uninstall")) == 0) {
+    else if (lstrcmpiW(argv[1], L"/uninstall") == 0) {
         DoDeleteSvc();
 
         std::cout << "Служба удалена" << std::endl;
     }
-    else if (lstrcmpi(argv[1], TEXT("/service")) == 0) {
+    else if (lstrcmpiW(argv[1], L"/service") == 0) {
         // Main work service
         SERVICE_TABLE_ENTRYW DispatchTable[] =
         {
@@ -58,15 +58,15 @@ void mainFunc(int argc, TCHAR* argv[]) {
 
             switch (lastError) {
             case ERROR_FAILED_SERVICE_CONTROLLER_CONNECT: {
-                loggerError << "ERROR_FAILED_SERVICE_CONTROLLER_CONNECT";
+                loggerError << (LogMsg() << "Ошибка (ERROR_FAILED_SERVICE_CONTROLLER_CONNECT): программа запускается как консольное приложение, а не как служба.");
                 break;
             }
             case ERROR_INVALID_DATA: {
-                loggerError << "ERROR_INVALID_DATA";
+                loggerError << (LogMsg() << "Ошибка (ERROR_INVALID_DATA): программа столкнулась с недопустимыми или повреждёнными данными.");
                 break;
             }
             case ERROR_SERVICE_ALREADY_RUNNING: {
-                loggerError << "ERROR_SERVICE_ALREADY_RUNNING";
+                loggerError << (LogMsg() << "Ошибка (ERROR_SERVICE_ALREADY_RUNNING): служба уже запущена");
                 break;
             }
             }
@@ -77,18 +77,19 @@ void mainFunc(int argc, TCHAR* argv[]) {
     }
     else {
         DoStopSvc();
-        std::cout << "Служба остановлена" << std::endl;
+        logger << (LogMsg(true) << "Служба остановлена");
 
         DoDeleteSvc();
-        std::cout << "Служба удалена" << std::endl;
+        logger << (LogMsg(true) << "Служба удалена");
 
-        SvcInstall();
-        std::cout << "Служба установлена" << std::endl;
+        SvcInstall(argc, argv);
+        logger << (LogMsg(true) << "Служба установлена");
 
         DoStartSvc();
-        std::cout << "Служба запущена" << std::endl;
+        logger << (LogMsg(true) << "Служба запущена");
     }
 }
+
 
 // Define main function
 #define MAIN_FUNC int __cdecl _tmain(int argc, TCHAR* argv[])
@@ -187,7 +188,7 @@ bool processArgument(std::string& arg, std::string& bodyArg) {
 }
 
 // Entry point
-int main(int argc, char* argv[])
+int wmain(int argc, WCHAR* argv[])
 {
     setlocale(LC_ALL, "ru");
 

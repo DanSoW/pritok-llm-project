@@ -28,7 +28,7 @@ extern SERVICE_STATUS_HANDLE   gSvcStatusHandle;
 extern HANDLE                  ghSvcStopEvent;
 extern const std::wstring	   gCommand;
 
-VOID SvcInstall(void);
+VOID SvcInstall(int argc, WCHAR* argv[]);
 
 VOID __stdcall DoStartSvc(void);
 VOID __stdcall DoStopSvc(void);

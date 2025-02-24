@@ -7,7 +7,7 @@
 #define APP_PACKAGE "win-service"
 #define DIR_SEPARATOR '\\'
 
-#define CONFIG_INI_PATH "C:/Projects/Development/pritok-llm/win-service\\@win-service.ini"
+#define CONFIG_INI_PATH "C:/Projects/Development/pritok-llm-project/win-service\\@win-service.ini"
 
 #define FILE_NAME_LOG "app"
 #define FILE_NAME_LOG_ERROR "err"

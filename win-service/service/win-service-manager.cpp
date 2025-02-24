@@ -1,4 +1,5 @@
 #include "win-service-manager.h"
+#include <iostream>
 
 #ifdef WIN_OS
 
@@ -11,7 +12,7 @@ const std::wstring      gCommand = L" /service";
 /// Installs a service in the SCM database
 /// </summary>
 /// <returns>None</returns>
-VOID SvcInstall()
+VOID SvcInstall(int argc, WCHAR* argv[])
 {
     SC_HANDLE schSCManager;
     SC_HANDLE schService;
@@ -28,6 +29,14 @@ VOID SvcInstall()
 
     str_proc::trimVector<WCHAR, std::int16_t>(szUnquotedPath, WCHAR(0), 0);
     szUnquotedPath.insert(szUnquotedPath.end(), gCommand.begin(), gCommand.end());
+
+    // Adding parameters
+    for (std::int32_t i = 1; i < argc; i++) {
+        std::wstring parameter = L" " + std::wstring(argv[i]);
+        szUnquotedPath.insert(szUnquotedPath.end(), parameter.begin(), parameter.end());
+    }
+
+    logger << (LogMsgW() << L"Путь до исполняемого файла службы: " << szUnquotedPath.data());
 
     // In case the path contains a space, it must be quoted so that
     // it is correctly interpreted. For example,
@@ -136,7 +145,7 @@ VOID __stdcall DoDeleteSvc()
         loggerError << (LogMsg() << "Удаление службы завершилось с ошибкой (" << GetLastError() << ")");
     }
     else {
-        logger << "Service deleted successfully";
+        logger << "Служба успешно удалена";
     }
 
     CloseServiceHandle(schService);
@@ -192,7 +201,7 @@ VOID __stdcall DoStartSvc()
         sizeof(SERVICE_STATUS_PROCESS), // size of structure
         &dwBytesNeeded))                // size needed if buffer is too small
     {
-        loggerError << (LogMsg() << "Попытка проверить текущий статус службы завершилось с ошибкой (" << GetLastError() << ")");
+        loggerError << (LogMsg() << "Получение текущего статуса службы завершилось с ошибкой (" << GetLastError() << ")");
 
         CloseServiceHandle(schService);
         CloseServiceHandle(schSCManager);
@@ -240,7 +249,7 @@ VOID __stdcall DoStartSvc()
             sizeof(SERVICE_STATUS_PROCESS), // size of structure
             &dwBytesNeeded))              // size needed if buffer is too small
         {
-            loggerError << (LogMsg() << "Попытка получения статуса службы завершилась с ошибкой (" << GetLastError() << ")");
+            loggerError << (LogMsg() << "Получение текущего статуса службы завершилось с ошибкой (" << GetLastError() << ")");
 
             CloseServiceHandle(schService);
             CloseServiceHandle(schSCManager);
@@ -279,7 +288,7 @@ VOID __stdcall DoStartSvc()
         return;
     }
     else {
-        logger << "Service start pending ...";
+        logger << "Ожидание запуска службы ...";
     }
 
     // Check the status until the service is no longer start pending. 
@@ -290,7 +299,7 @@ VOID __stdcall DoStartSvc()
         sizeof(SERVICE_STATUS_PROCESS), // size of structure
         &dwBytesNeeded))              // if buffer too small
     {
-        loggerError << (LogMsg() << "QueryServiceStatusEx failed (" << GetLastError() << ")");
+        loggerError << (LogMsg() << "Получение текущего статуса службы завершилось с ошибкой (" << GetLastError() << ")");
 
         CloseServiceHandle(schService);
         CloseServiceHandle(schSCManager);
@@ -326,7 +335,7 @@ VOID __stdcall DoStartSvc()
             sizeof(SERVICE_STATUS_PROCESS), // size of structure
             &dwBytesNeeded))              // if buffer too small
         {
-            loggerError << (LogMsg() << "QueryServiceStatusEx failed (" << GetLastError() << ")");
+            loggerError << (LogMsg() << "Получение текущего статуса службы завершилось с ошибкой (" << GetLastError() << ")");
             break;
         }
 
@@ -350,12 +359,12 @@ VOID __stdcall DoStartSvc()
 
     if (ssStatus.dwCurrentState == SERVICE_RUNNING)
     {
-        logger << "Service started successfully";
+        logger << "Служба успешно запущена";
     }
     else
     {
-        loggerError << "Service not started";
-        loggerError << (LogMsg() << "Current state: " << ssStatus.dwCurrentState);
+        loggerError << "Служба не запущена";
+        loggerError << (LogMsg() << "Current State: " << ssStatus.dwCurrentState);
         loggerError << (LogMsg() << "Exit Code: " << ssStatus.dwWin32ExitCode);
         loggerError << (LogMsg() << "Check Point: " << ssStatus.dwCheckPoint);
         loggerError << (LogMsg() << "Wait Hint: " << ssStatus.dwWaitHint);
@@ -388,7 +397,7 @@ VOID __stdcall DoStopSvc()
 
     if (NULL == schSCManager)
     {
-        loggerError << (LogMsg() << "OpenSCManager failed (" << GetLastError() << ")");
+        loggerError << (LogMsg() << "Получение доступа к менеджеру служб завершилось с ошибкой (" << GetLastError() << ")");
         return;
     }
 
@@ -402,7 +411,7 @@ VOID __stdcall DoStopSvc()
 
     if (schService == NULL)
     {
-        loggerError << (LogMsg() << "OpenService failed (" << GetLastError() << ")");
+        loggerError << (LogMsg() << "Получение доступа к службе завершилось с ошибкой (" << GetLastError() << ")");
         CloseServiceHandle(schSCManager);
         return;
     }
@@ -415,7 +424,7 @@ VOID __stdcall DoStopSvc()
         sizeof(SERVICE_STATUS_PROCESS),
         &dwBytesNeeded))
     {
-        loggerError << (LogMsg() << "QueryServiceStatusEx failed (" << GetLastError() << ")");
+        loggerError << (LogMsg() << "Получение текущего статуса службы завершилось с ошибкой (" << GetLastError() << ")");
 
         CloseServiceHandle(schService);
         CloseServiceHandle(schSCManager);
@@ -425,7 +434,7 @@ VOID __stdcall DoStopSvc()
 
     if (ssp.dwCurrentState == SERVICE_STOPPED)
     {
-        logger << "Service is already stopped";
+        loggerError << (LogMsg() << "Служба уже остановлена");
 
         CloseServiceHandle(schService);
         CloseServiceHandle(schSCManager);
@@ -433,10 +442,14 @@ VOID __stdcall DoStopSvc()
         return;
     }
 
+    if (ssp.dwCurrentState == SERVICE_STOP_PENDING) {
+        logger << "Служба уже в состоянии остановки";
+    }
+
     // If a stop is pending, wait for it.
     while (ssp.dwCurrentState == SERVICE_STOP_PENDING)
     {
-        logger << "Service stop pending ...";
+        logger << "Ожидание остановки службы ...";
 
         // Do not wait longer than the wait hint. A good interval is 
         // one-tenth of the wait hint but not less than 1 second  
@@ -459,7 +472,7 @@ VOID __stdcall DoStopSvc()
             sizeof(SERVICE_STATUS_PROCESS),
             &dwBytesNeeded))
         {
-            loggerError << (LogMsg() << "QueryServiceStatusEx failed (" << GetLastError() << ")");
+            loggerError << (LogMsg() << "Получение текущего статуса службы завершилось с ошибкой (" << GetLastError() << ")");
 
             CloseServiceHandle(schService);
             CloseServiceHandle(schSCManager);
@@ -469,7 +482,7 @@ VOID __stdcall DoStopSvc()
 
         if (ssp.dwCurrentState == SERVICE_STOPPED)
         {
-            logger << "Service stopped sucessfully";
+            logger << "Служба успешно остановлена";
 
             CloseServiceHandle(schService);
             CloseServiceHandle(schSCManager);
@@ -479,7 +492,7 @@ VOID __stdcall DoStopSvc()
 
         if ((GetTickCount64() - dwStartTime) > dwTimeout)
         {
-            logger << "Service stop timed out";
+            loggerError << (LogMsg() << "Время ожидания остановки службы подошло к концу. Служба не остановлена.");
 
             CloseServiceHandle(schService);
             CloseServiceHandle(schSCManager);
@@ -496,7 +509,7 @@ VOID __stdcall DoStopSvc()
         SERVICE_CONTROL_STOP,
         (LPSERVICE_STATUS)&ssp))
     {
-        loggerError << (LogMsg() << "ControlService failed (" << GetLastError() << ")");
+        loggerError << (LogMsg() << "Отправка службе команды об остановке завершилась с ошибкой (" << GetLastError() << ")");
 
         CloseServiceHandle(schService);
         CloseServiceHandle(schSCManager);
@@ -516,7 +529,7 @@ VOID __stdcall DoStopSvc()
             sizeof(SERVICE_STATUS_PROCESS),
             &dwBytesNeeded))
         {
-            loggerError << (LogMsg() << "QueryServiceStatusEx failed (" << GetLastError() << ")");
+            loggerError << (LogMsg() << "Получение текущего статуса службы завершилось с ошибкой (" << GetLastError() << ")");
 
             CloseServiceHandle(schService);
             CloseServiceHandle(schSCManager);
@@ -529,7 +542,7 @@ VOID __stdcall DoStopSvc()
 
         if ((GetTickCount64() - dwStartTime) > dwTimeout)
         {
-            logger << "Wait timed out";
+            loggerError << (LogMsg() << "Время ожидания остановки службы подошло к концу. Служба не остановлена.");
 
             CloseServiceHandle(schService);
             CloseServiceHandle(schSCManager);
@@ -537,7 +550,7 @@ VOID __stdcall DoStopSvc()
         }
     }
 
-    logger << "Service stopped succesfully";
+    logger << "Служба успешно остановлена";
 
     CloseServiceHandle(schService);
     CloseServiceHandle(schSCManager);
@@ -573,8 +586,9 @@ BOOL __stdcall StopDependentServices(SC_HANDLE& schSCManager, SC_HANDLE& schServ
     }
     else
     {
-        if (GetLastError() != ERROR_MORE_DATA) {
-            loggerError << "Unexcepted error";
+        DWORD error = GetLastError();
+        if (error != ERROR_MORE_DATA) {
+            loggerError << (LogMsg() << "Возникла непредвиденная ошибка (" << error << ")");
 
             return FALSE; // Unexpected error
         }
@@ -604,12 +618,8 @@ BOOL __stdcall StopDependentServices(SC_HANDLE& schSCManager, SC_HANDLE& schServ
                 SERVICE_STOP | SERVICE_QUERY_STATUS);
 
             if (!hDepService) {
-                logger << "!hDepService";
-
                 return FALSE;
             }
-
-            logger << "Send a stop code ...";
 
             // Send a stop code.
             if (!ControlService(hDepService,
@@ -617,8 +627,6 @@ BOOL __stdcall StopDependentServices(SC_HANDLE& schSCManager, SC_HANDLE& schServ
                 (LPSERVICE_STATUS)&ssp)) {
                 return FALSE;
             }
-
-            logger << "Wait for the service to stop";
 
             // Wait for the service to stop.
             while (ssp.dwCurrentState != SERVICE_STOPPED)
@@ -673,7 +681,8 @@ VOID SvcReportEvent(LPWSTR szFunction)
         lpszStrings[0] = SVCNAME;
         lpszStrings[1] = Buffer;
 
-        ReportEventW(hEventSource,        // event log handle
+        ReportEventW(
+            hEventSource,        // event log handle
             EVENTLOG_ERROR_TYPE, // event type
             0,                   // event category
             1,//SVC_ERROR,       // event identifier
@@ -681,7 +690,8 @@ VOID SvcReportEvent(LPWSTR szFunction)
             2,                   // size of lpszStrings array
             0,                   // no binary data
             lpszStrings,         // array of strings
-            NULL);               // no binary data
+            NULL                 // no binary data
+        );
 
         DeregisterEventSource(hEventSource);
     }
