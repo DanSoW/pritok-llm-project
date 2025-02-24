@@ -15,6 +15,8 @@
 #include <ctime>
 #include <cstddef>
 
+#include <Python.h>
+
 using namespace std;
 
 #ifdef WIN_OS
@@ -192,6 +194,33 @@ int wmain(int argc, WCHAR* argv[])
 {
     setlocale(LC_ALL, "ru");
 
+    /*std::filesystem::path script{"C:\\Projects\\Development\\pritok-llm-project\\scripts\\main.py"};
+
+    // Создание изолируемой конфигурации для выполнения python-скриптов
+    PyConfig config;
+    PyConfig_InitIsolatedConfig(&config);
+
+    auto fullPath = std::filesystem::current_path() / script.parent_path();
+    auto venv_executable = (fullPath / ".venv\\Scripts\\python.exe").wstring();
+
+    std::wcout << venv_executable << std::endl;
+
+    // Установка пути до виртуального окружения
+    PyConfig_SetString(&config, &config.executable, venv_executable.c_str());
+
+    Py_InitializeFromConfig(&config);
+    PyConfig_Clear(&config);
+
+    PyObject* sysPath = PySys_GetObject("path");
+    PyList_Insert(sysPath, 0, PyUnicode_FromString(script.parent_path().string().c_str()));
+
+    PyObject* pModule = PyImport_ImportModule("main");
+
+    Py_Finalize();
+
+    system("PAUSE");
+    return 0;*/
+
     bool writeToConsole = false;
 #ifdef WIN_OS
     writeToConsole = console_utils::consoleExists();
@@ -338,6 +367,27 @@ VOID SvcInit(DWORD dwArgc, LPWSTR* lpszArgv)
             logger << (LogMsg() << "Итерация " << iter++);
 
             Sleep(2000);
+
+            std::filesystem::path script{ L"C:\\Projects\\Development\\pritok-llm-project\\scripts\\main.py" };
+
+            // Создание изолируемой конфигурации для выполнения python-скриптов
+            PyConfig config;
+            PyConfig_InitIsolatedConfig(&config);
+
+            // Установка пути до виртуального окружения
+            PyConfig_SetString(&config, &config.executable, L"C:\\Projects\\Development\\pritok-llm-project\\scripts\\.venv\Scripts\\python.exe");
+
+            Py_InitializeFromConfig(&config);
+            PyConfig_Clear(&config);
+
+            PyObject* sysPath = PySys_GetObject("path");
+            PyList_Insert(sysPath, 0, PyUnicode_FromString(script.parent_path().string().c_str()));
+
+            PyObject* pModule = PyImport_ImportModule("main");
+
+            Py_Finalize();
+
+            break;
         }
 
         fw.release();
@@ -349,6 +399,9 @@ VOID SvcInit(DWORD dwArgc, LPWSTR* lpszArgv)
         logger << (LogMsg() << "Служба аварийно остановлена");
         loggerError << (LogMsg() << ec.what());
         ReportSvcStatus(SERVICE_STOPPED, NO_ERROR, 0);
+    }
+    catch (...) {
+        logger << (LogMsg() << "Непредвиденная ошибка");
     }
 }
 
